@@ -32,14 +32,27 @@ application applicationCreate(const char* title, u32 width, u32 height) {
     
     ASSERT(app.window.glfwInstance, "Failed to create GLFW window."); 
 
+    LOG_INFO("Created application window '%s' (%ix%i).", 
+            app.window.title, app.window.width, app.window.height);
+
     glfwMakeContextCurrent(app.window.glfwInstance);
     
     ASSERT(gladLoadGLLoader((GLADloadproc)glfwGetProcAddress), "Failed to initialize Glad.");
 
     glfwSetFramebufferSizeCallback(app.window.glfwInstance, applicationOnResize);
     
+    glfwSwapInterval(true); 
     gState.app = &app;
     
+    float* block = NULL;
+
+    float* block2 =  mrn_malloc(block2, sizeof(float) * 2);
+    block2[0] = 3;
+    block2[1] = 4;
+
+
+    assign_ptr(block2, block); 
+
     return app;
 }
                                             
