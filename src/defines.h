@@ -15,6 +15,9 @@ typedef unsigned char bool;
 #define false 0
 #define true 1
 
+extern u64 mrnMemUsage;
+extern u64 mrnTotalAllocatedMem;
+
 #ifdef MRN_DEBUG
 #define LOG_DEBUG(...) printf("[DEBUG]: "); printf(__VA_ARGS__); printf("\n")
 #else
@@ -41,11 +44,16 @@ typedef unsigned char bool;
 
 #define mrn_malloc(var_name, size)                                                                                              \
     malloc(size);                                                                                                               \
+    ASSERT(var_name != NULL, "Failed to allocate %li bytes to block '%s'", size, #var_name);                                    \
     LOG_DEBUG("Allocated %li bytes to block '%s'", size, #var_name);                                                            \
+    mrnTotalAllocatedMem += size;                                                                                               \
+    mrnMemUsage += size;                                                                                                        \
 
 #define mrn_free(block) {                                                                                                       \
     free(block);                                                                                                                \
+    block = NULL;                                                                                                               \
     LOG_DEBUG("Freed block '%s' (%li bytes)", #block, sizeof(block));                                                           \
+    mrnMemUsage -= size;                                                                                                        \
 }
 
 #define assign_ptr(dst, ptr) {                                                                                                  \
@@ -53,3 +61,5 @@ typedef unsigned char bool;
     dst = ptr;                                                                                                                  \
     LOG_DEBUG("Assigned block '%s'%s to block '%s'", #ptr, (ptr == NULL) ? "(which is NULL)" : "", (#dst));                     \
 }
+
+void mrnLogCrntMemUsage();

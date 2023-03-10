@@ -1,4 +1,6 @@
 #include "app.h"
+#include "input.h"
+
 #include <glad/glad.h>
 
 globalState gState;
@@ -35,23 +37,42 @@ application applicationCreate(const char* title, u32 width, u32 height) {
     LOG_INFO("Created application window '%s' (%ix%i).", 
             app.window.title, app.window.width, app.window.height);
 
-    glfwMakeContextCurrent(app.window.glfwInstance);
-    
+    glfwMakeContextCurrent(app.window.glfwInstance);    
     ASSERT(gladLoadGLLoader((GLADloadproc)glfwGetProcAddress), "Failed to initialize Glad.");
 
-    glfwSetFramebufferSizeCallback(app.window.glfwInstance, applicationOnResize);
-    
+    glfwSetFramebufferSizeCallback(app.window.glfwInstance, applicationOnResize); 
+    glfwSetKeyCallback(app.window.glfwInstance, inputGLFWKeyCallback);
+    glfwSetMouseButtonCallback(app.window.glfwInstance, inputGLFWMouseButtonCallback);
+    glfwSetCursorPosCallback(app.window.glfwInstance, inputGLFWMouseCursorPosCallback);
+    glfwSetScrollCallback(app.window.glfwInstance, inputGLFWMouseScrollCallback);
+
     glfwSwapInterval(true); 
-    gState.app = &app;
+
+    float vertices[] = {
+        -0.5f, -0.5f, 0.0f,
+        -0.5f,  0.5f, 0.0f,
+         0.5f,  0.5f, 0.0f,
+         0.5f, -0.5f, 0.0f
+    };
+    u32 indices[] = { 0, 1, 2, 2, 3, 0 };
+
+    u32 vao, vbo, ibo;
+
+    glCreateVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    glCreateBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     
-    float* block = NULL;
-
-    float* block2 =  mrn_malloc(block2, sizeof(float) * 2);
-    block2[0] = 3;
-    block2[1] = 4;
-
-
-    assign_ptr(block2, block); 
+    glCreateBuffers(1, &ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, NULL);
+    
+    gState.app = &app; 
 
     return app;
 }
@@ -62,15 +83,20 @@ void applicationRun(application* app) {
             app->running = false;
         }
         if(!app->suspended) {
+            if(keyWentDown(GLFW_KEY_ESCAPE)) 
+                app->running = false;
+
             float currentTime = glfwGetTime();
             app->deltaTime = currentTime - app->lastTime;
             app->lastTime = currentTime;
-
+            
             glfwPollEvents();
             glfwSwapBuffers(app->window.glfwInstance);
 
             glClear(GL_COLOR_BUFFER_BIT);
             glClearColor(0.2f, 0.3f, 0.8f, 1.0f);
+
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
         }
     }
 }
@@ -78,4 +104,16 @@ void applicationRun(application* app) {
 void applicationTerminate(application* app) {
     glfwDestroyWindow(app->window.glfwInstance);
     glfwTerminate();
+
+    LOG_TRACE("Total memory allocated by Marine-Runtime");
+    LOG_TRACE("===================================");
+    LOG_TRACE("%lliB", mrnTotalAllocatedMem);
+    LOG_TRACE("%fKB", (float)(mrnTotalAllocatedMem / 1024.0f));
+    LOG_TRACE("%fMB", (float)(mrnTotalAllocatedMem / (1024.0f * 1024.0f)));
+    LOG_TRACE("%fGB", (float)(mrnTotalAllocatedMem / (1024.0f * 1024.0f * 1024.0f))); 
+    LOG_TRACE("===================================");
+    if(mrnMemUsage != 0) {
+        LOG_WARN("Not deallocated memory: %lliB", mrnMemUsage);
+    }
+
 }
